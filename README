@@ -1,6 +1,5 @@
-Written By:
-    Josh Green <josh@softwareverde.com>
-
+Copyright (C) 2014 Josh Green <josh@softwareverde.com>
+License: GNU GPLv3; reference LICENSE for information.
 
 Description:
     These scripts will install the bitcoin-qt daemon on your Debian machine.
