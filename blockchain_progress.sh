@@ -11,9 +11,12 @@ if [ ! -f ~/.bitcoin/bitcoin.conf ]; then
 fi
 
 if [ "$*" == "--poll" ]; then
-    echo
     while [ 0 -eq 0 ]; do
         local_count=`bitcoin-cli getblockcount 2>&1`
+        if [ "$?" -gt 0 ]; then
+            echo "ERROR: Can't connect to bitcoind. Is it running?" 1>&2
+            exit 1
+        fi
         web_count=`wget -O - http://blockchain.info/q/getblockcount 2>/dev/null`
 
         echo -ne "\r\033[KDownloaded:\t${local_count} of ${web_count}\t\t( $((${local_count} * 100 / ${web_count}))% )"
@@ -21,6 +24,10 @@ if [ "$*" == "--poll" ]; then
     done
 else
     local_count=`bitcoin-cli getblockcount 2>&1`
+    if [ "$?" -gt 0 ]; then
+        echo "ERROR: Can't connect to bitcoind. Is it running?" 1>&2
+        exit 1
+    fi
     web_count=`wget -O - http://blockchain.info/q/getblockcount 2>/dev/null`
 
     echo "Downloaded ${local_count} of ${web_count} ( $((${local_count} / ${web_count} * 100))% )"
