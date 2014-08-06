@@ -11,6 +11,10 @@ Info:
     The daemon should start automatically at start-up.
     Located: /etc/init.d/bitcoind
 
+*** Be sure you're forwarding port 8333 to your node (do this via your router). ***
+    To verify, execute:
+        ./check_connections.sh
+
 
 
 To Install:
