@@ -1,0 +1,25 @@
+Written By:
+    Josh Green <josh@softwareverde.com>
+
+
+Description:
+    These scripts will install the bitcoin-qt daemon on your Debian machine.
+    The daemon is run under its own user; its data us located in its home directory.
+
+Info:
+    An init.d script is installed and is accessible by root-only.
+    The daemon should start automatically at start-up.
+    Located: /etc/init.d/bitcoind
+
+
+
+To Install:
+    sudo ./install.sh
+
+To Remove:
+    sudo ./uninstall.sh
+
+
+
+Donations are absolutely not necessary, but if you feel inclined to do so:
+    1GreenZT1zRJdtyYv6FiPznostwKDscBpm
