@@ -15,7 +15,7 @@ if [ "`uname -m`" = "x86_64" ]; then
 fi
 
 function hash() {
-    echo -n "$1" | md5sum | sed 's/\([0-9a-Z]\+\).*/\1/p' | tail -n1 
+    echo -n "$1" | md5sum | sed 's/\([0-9a-zA-Z]\+\).*/\1/p' | tail -n1 
 }
 
 function random_hash() {
