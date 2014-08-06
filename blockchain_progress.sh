@@ -36,6 +36,6 @@ else
     fi
     web_count=`wget -O - http://blockchain.info/q/getblockcount 2>/dev/null`
 
-    echo "Downloaded ${local_count} of ${web_count} ( $((${local_count} / ${web_count} * 100))% )"
+    echo -e "Downloaded:\t${local_count} of ${web_count}\t\t( $((${local_count} * 100 / ${web_count}))% )"
 fi
 

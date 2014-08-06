@@ -19,6 +19,10 @@ To Install:
 To Remove:
     sudo ./uninstall.sh
 
+To Check Blockchain Download Status:
+    ./blockchain_progress.sh
+    Note:
+        Specifying the "--poll" flag will make the output update continuously.
 
 
 Donations are absolutely not necessary, but if you feel inclined to do so:
