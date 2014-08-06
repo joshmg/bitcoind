@@ -71,7 +71,7 @@ sleep 3
 echo 
 echo "########## Notice ##########"
 echo "To use the bitcoin-cli, execute:"
-echo "echo -e '${config_contents}' > ~/.bitcoin/bitcoin.conf"
+echo -e "if [ ! -d ~/.bitcoin ]; then mkdir ~/.bitcoin; fi;\necho -e '${config_contents}' > ~/.bitcoin/bitcoin.conf;\nchmod -R 770 ~/.bitcoin"
 echo "############################"
 echo
 
