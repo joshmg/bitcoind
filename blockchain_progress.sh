@@ -11,29 +11,30 @@ if [ ! -f ~/.bitcoin/bitcoin.conf ]; then
 fi
 
 if [ "$*" == "--poll" ]; then
-    i=0; j=0
-    web_count=`wget -O - http://blockchain.info/q/getblockcount 2>/dev/null`
-    while [ 0 -eq 0 ]; do
-        local_count=`bitcoin-cli getblockcount 2>&1`
-        if [ "$?" -gt 0 ]; then
-            echo "ERROR: Can't connect to bitcoind. Is it running?" 1>&2
-            exit 1
-        fi
-        if [ $i = 10 ]; then
-            web_count=`wget -O - http://blockchain.info/q/getblockcount 2>/dev/null`
-            i=0
-        fi
+    j=0
+    while [ true ]; do
+        for i in {0..9}; do
+            local_count=`bitcoin-cli getblockcount 2>&1`
+            if [ "$?" -gt 0 ]; then
+                echo "ERROR: Can't connect to bitcoind. Is it running?" 1>&2
+                exit 1
+            fi
 
-        echo -ne "\r\033[KDownloaded:\t${local_count} of ${web_count}\t\t( $((${local_count} * 100 / ${web_count}))% )"
+            if [ $i = 0 ]; then
+                web_count=`wget -O - http://blockchain.info/q/getblockcount 2>/dev/null`
+            fi
 
-        if [ $j -ge 1 ]; then   echo -n " .";           else echo -ne "  "; fi
-        if [ $j -ge 2 ]; then   echo -n ".";            else echo -ne " ";  fi
-        if [ $j -ge 3 ]; then   echo -n ".";    j=0;    else echo -ne " ";  fi
-        echo -n " "
+            echo -ne "\r\033[KDownloaded:\t${local_count} of ${web_count}\t\t( $((${local_count} * 100 / ${web_count}))% )"
 
-        sleep 3
-        i=$(($i +1))
-        j=$(($j +1))
+            # Handle Ellipse
+            if [ $j -ge 1 ]; then   echo -n " .";           else echo -ne "  "; fi
+            if [ $j -ge 2 ]; then   echo -n ".";            else echo -ne " ";  fi
+            if [ $j -ge 3 ]; then   echo -n ".";    j=0;    else echo -ne " ";  fi
+            echo -n " "
+            j=$(($j +1))
+
+            sleep 3
+        done
     done
 else
     local_count=`bitcoin-cli getblockcount 2>&1`
