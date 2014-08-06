@@ -6,7 +6,9 @@ fi
 
 DAEMON_USER='bitcoin'
 
+/etc/init.d/bitcoind stop
 deluser "${DAEMON_USER}"
 rm -r "/home/${DAEMON_USER}"
 rm /etc/init.d/bitcoind
+rm /usr/bin/bitcoin-cli
 

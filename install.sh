@@ -42,6 +42,10 @@ tar -xzf "${FILE}.tar.gz"
 cp "${FILE}/bin/${BIT}/bitcoind" "/home/${DAEMON_USER}/."
 chown ${DAEMON_USER}:${DAEMON_USER} "/home/${DAEMON_USER}/bitcoind"
 chmod 770 "/home/${DAEMON_USER}/bitcoind"
+cp "${FILE}/bin/${BIT}/bitcoin-cli" "/usr/bin/."
+chown root:root "/usr/bin/bitcoin-cli"
+chmod 755 "/usr/bin/bitcoin-cli"
+
 # Clean Up
 rm -r "${FILE}"
 rm "${FILE}.tar.gz"
@@ -55,11 +59,19 @@ update-rc.d bitcoind defaults
 
 # Create bitcoin.conf
 mkdir "/home/${DAEMON_USER}/.bitcoin"
-echo -e "rpcuser=`random_hash`\nrpcpassword=`random_hash``random_hash`\n" > "/home/${DAEMON_USER}/.bitcoin/bitcoin.conf"
+config_contents="rpcuser=`random_hash`\nrpcpassword=`random_hash``random_hash`\n"
+echo -e "${config_contents}" > "/home/${DAEMON_USER}/.bitcoin/bitcoin.conf"
 chmod -R 770 "/home/${DAEMON_USER}/.bitcoin"
 chown -R ${DAEMON_USER}:${DAEMON_USER} "/home/${DAEMON_USER}/.bitcoin"
 
 /etc/init.d/bitcoind start
 sleep 3
 /etc/init.d/bitcoind status
+
+echo 
+echo "########## Notice ##########"
+echo "To use the bitcoin-cli, execute:"
+echo "echo -e '${config_contents}' > ~/.bitcoin/bitcoin.conf"
+echo "############################"
+echo
 
