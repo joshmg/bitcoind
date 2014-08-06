@@ -11,7 +11,7 @@ if [ ! -f ~/.bitcoin/bitcoin.conf ]; then
 fi
 
 if [ "$*" == "--poll" ]; then
-    i=0
+    i=0; j=0
     web_count=`wget -O - http://blockchain.info/q/getblockcount 2>/dev/null`
     while [ 0 -eq 0 ]; do
         local_count=`bitcoin-cli getblockcount 2>&1`
@@ -25,8 +25,15 @@ if [ "$*" == "--poll" ]; then
         fi
 
         echo -ne "\r\033[KDownloaded:\t${local_count} of ${web_count}\t\t( $((${local_count} * 100 / ${web_count}))% )"
+
+        if [ $j -ge 1 ]; then   echo -n " .";           else echo -ne "  "; fi
+        if [ $j -ge 2 ]; then   echo -n ".";            else echo -ne " ";  fi
+        if [ $j -ge 3 ]; then   echo -n ".";    j=0;    else echo -ne " ";  fi
+        echo -n " "
+
         sleep 3
         i=$(($i +1))
+        j=$(($j +1))
     done
 else
     local_count=`bitcoin-cli getblockcount 2>&1`
