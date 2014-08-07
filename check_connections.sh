@@ -10,15 +10,44 @@ if [ ! -f ~/.bitcoin/bitcoin.conf ]; then
     exit 1
 fi
 
-connections=`bitcoin-cli getinfo | grep "connections" | sed 's/^.*:[^0-9]*\([0-9]\+\),$/\1/p' | tail -n1`
-
+# Test connection to bitcoind
+tmp=`bitcoin-cli getinfo 2>/dev/null`
 if [ "$?" -gt 0 ]; then
-    echo "Unable to connect to bitcoind." 1>&2
+    echo "ERROR: Unable to connect to bitcoind." 1>&2
     exit 1
 fi
 
+connections=`bitcoin-cli getinfo | grep "connections" | sed 's/^.*:[^0-9]*\([0-9]\+\),$/\1/p' | tail -n1`
+
+inbound=0
+peer_info=`bitcoin-cli getpeerinfo | grep inbound | sed 's/^.*inbound.*:[^\(true\|false\)]\([a-zA-Z]\+\).*/\1/p'`
+for value in ${peer_info}; do
+    if [ "${value}" = "true" ]; then
+        inbound=$(($inbound +1))
+    fi
+done
+
 if [ "${connections}" -gt 8 ]; then
-    echo "You're successfully contributing to the network. (${connections} Peers Connected)"
+    if [ "${inbound}" -gt 0 ]; then
+        echo "You're successfully contributing to the network."
+        echo "[${connections} peers connected | ${inbound} inbound connections detected]"
+    else
+        echo "There's likely a problem with your router."
+        echo "Ensure you're forwarding port 8333 to this server and check again."
+        echo "[${connections} peers connected | ${inbound} inbound connections detected]"
+    fi
+elif [ "${connections}" -eq 8 ]; then
+        echo "It's very likely that there's a problem with your router."
+        echo "Ensure you're forwarding port 8333 to this server and check again."
+        echo "[${connections} peers connected | ${inbound} inbound connections detected]"
 else
-    echo "You're not contributing to the network (yet). Ensure your router is forwarding port 8333 and check again. (${connections} Peers Connected)"
+    if [ "${inbound}" -gt 0 ]; then
+        echo "You have inbound connections (which is good), but you only have ${connections} peers connected."
+        echo "You're probably good to go, but check again in a few minutes to be sure."
+        echo "[${connections} peers connected | ${inbound} inbound connections detected]"
+    else
+        echo "You're not contributing to the network (yet), but it might be too early to tell."
+        echo "None of your connections originated from outside your network."
+        echo "[${connections} peers connected | ${inbound} inbound connections detected]"
+    fi
 fi
