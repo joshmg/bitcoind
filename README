@@ -28,5 +28,22 @@ To Check Blockchain Download Status:
         Specifying the "--poll" flag will make the output update continuously.
 
 
+Common Problems:
+    "When running ./check_connections.sh or ./blockchain_progress.sh, it says it's unable to connect to bitcoind."
+        - First: Be sure it's running:
+            sudo /etc/init.d/bitcoind status
+        - Second: Be sure your bitcoin.conf is created and has the right permissons.
+            This is normally done by executing the "NOTICE" text produced at the end of install.sh. If you didn't execute
+            that code as the user you're attempting to run ./check_connections.sh or ./blockchain_progress.sh, then you
+            must manually copy the daemon's user .bitcoin/bitcoin.conf to your user's /home directory. Be sure to set the
+            proper permissions. Keep its content secret.
+
+            Example (Assuming your account name is "user"):
+                sudo mkdir /home/user/.bitcoin
+                sudo cp /home/bitcoin/.bitcoin/bitcoin.conf /home/user/.bitcoin/.
+                sudo chown -R user:user /home/user/.bitcoin
+                sudo chmod -R 770 /home/user/.bitcoin
+
+
 Donations are absolutely not necessary, but if you feel inclined to do so:
     1GreenZT1zRJdtyYv6FiPznostwKDscBpm

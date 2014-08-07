@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Set the Daemon User
+# This is the user that bitcoind will run under.
+# This is also the name of the /home/<user> directory that your blockdata will be stored.
+# The daemon user will be locked; you will be unable to log in as this user (except via su).
+
+DAEMON_USER='bitcoin'
