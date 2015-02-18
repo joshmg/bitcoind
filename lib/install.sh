@@ -60,7 +60,13 @@ function download_bitcoind() {
         echo "ERROR: CPU bit not set." 1>&2
         exit 1
     fi
-    file="bitcoin-${VERSION}-linux"
+
+    file="bitcoin-${VERSION}-linux${BIT}"
+    compare_version "${VERSION}" "0.10.0"
+    if [ "$?" -gt 1 ]; then
+        # Backwards compatibility for version < 0.10.0
+        file="bitcoin-${VERSION}-linux"
+    fi
 
     # wget "https://bitcoin.org/bin/${VERSION}/${file}.tar.gz" >/dev/null 2>/dev/null
     wget "https://bitcoin.org/bin/${VERSION}/${file}.tar.gz" --progress=bar:force 2>&1 | tail -f -n +8
@@ -69,22 +75,41 @@ function download_bitcoind() {
 # Install Bitcoin-QT binaries
 # Note: this function consumes the tarball
 function install_binaries() {
-    file="bitcoin-${VERSION}-linux"
+    file="bitcoin-${VERSION}-linux${BIT}"
+    compare_version "${VERSION}" "0.10.0"
+    if [ "$?" -gt 1 ]; then
+        # Backwards compatibility for version < 0.10.0
+        file="bitcoin-${VERSION}-linux"
+    fi
+
     if [ ! -f "${file}.tar.gz" ]; then
         echo "ERROR: Cannot find bitcoind package. Was it downloaded?" 1>&2
         exit 1
     fi
 
     tar -xzf "${file}.tar.gz"
-    cp "${file}/bin/${BIT}/bitcoind" "/home/${DAEMON_USER}/."
+    if [ "$?" -lt 2 ]; then
+        cp "bitcoin-${VERSION}/bin/bitcoind" "/home/${DAEMON_USER}/."
+        cp "bitcoin-${VERSION}/bin/bitcoin-cli" "/usr/bin/."
+    else
+        # Backwards compatibility for version < 0.10.0
+        cp "${file}/bin/${BIT}/bitcoind" "/home/${DAEMON_USER}/."
+        cp "${file}/bin/${BIT}/bitcoin-cli" "/usr/bin/."
+    fi
+
     chown ${DAEMON_USER}:${DAEMON_USER} "/home/${DAEMON_USER}/bitcoind"
     chmod 770 "/home/${DAEMON_USER}/bitcoind"
-    cp "${file}/bin/${BIT}/bitcoin-cli" "/usr/bin/."
     chown root:root "/usr/bin/bitcoin-cli"
     chmod 755 "/usr/bin/bitcoin-cli"
 
     # Clean Up
-    rm -r "${file}"
+    compare_version "${VERSION}" "0.10.0"
+    if [ "$?" -lt 2 ]; then
+        rm -r "bitcoin-${VERSION}"
+    else
+        # Backwards compatibility for version < 0.10.0
+        rm -r "${file}"
+    fi
     rm "${file}.tar.gz"
 }
 
@@ -115,4 +140,34 @@ function create_bitcoin_conf() {
     echo -e "${config_contents}" > "/home/${DAEMON_USER}/.bitcoin/bitcoin.conf"
     chmod -R 770 "/home/${DAEMON_USER}/.bitcoin"
     chown -R ${DAEMON_USER}:${DAEMON_USER} "/home/${DAEMON_USER}/.bitcoin"
+}
+
+# Version String Comparison
+# 0 : Equal; 1 : First Param GT; 1 : Second Param GT
+# Kudos: Dennis Williamson http://goo.gl/u81W2m
+function compare_version() {
+    if [[ $1 == $2 ]]; then
+        return 0
+    fi
+
+    local IFS=.
+    local i ver1=($1) ver2=($2)
+
+    # fill empty fields in ver1 with zeros
+    for ((i=${#ver1[@]}; i<${#ver2[@]}; i++)); do
+        ver1[i]=0
+    done
+
+    for ((i=0; i<${#ver1[@]}; i++)); do
+        if [[ -z ${ver2[i]} ]]; then
+            # fill empty fields in ver2 with zeros
+            ver2[i]=0
+        elif ((10#${ver1[i]} > 10#${ver2[i]})); then
+            return 1
+        elif ((10#${ver1[i]} < 10#${ver2[i]})); then
+            return 2
+        fi
+    done
+
+    return 0
 }
