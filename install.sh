@@ -16,19 +16,21 @@ if [ ! -f "config" ]; then
 fi
 . config
 
+prompt_for_variant
+
 echo "Determining latest version..."
-VERSION=`get_latest_version`
-echo "Using Version: ${VERSION}"
+VERSION=`get_latest_version "${VARIANT}"`
+echo "Using Version: ${VERSION} ${VARIANT}"
 
 
 echo "Creating daemon user: ${DAEMON_USER}"
 create_daemon_user
 
-echo "Downloading Bitcoin-QT ${VERSION}"
-download_bitcoind
+echo "Downloading Bitcoin-QT ${VERSION} ${VARIANT}"
+download_bitcoind "${VARIANT}"
 
-echo "Installing Bitcoin-QT binary files..."
-install_binaries
+echo "Installing Bitcoin-QT binary files... ${VARIANT}"
+install_binaries "${VARIANT}"
 
 echo "Installing init.d script..."
 install_init_d
@@ -37,6 +39,7 @@ echo "Creating bitcoin.conf..."
 create_bitcoin_conf
 
 echo "${VERSION}" > .version
+echo "${VARIANT}" >> .version
 
 # Start BitcoinQT Daemon
 echo "Starting Bitcoin-QT Daemon..."

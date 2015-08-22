@@ -25,12 +25,19 @@ function random_hash() {
 
 # Determine the latest version via the web.
 function get_latest_version() {
-    FALLBACK_VERSION='0.9.2.1'
-    version=`wget -O - https://bitcoin.org/en/download 2>/dev/null | grep -i "Latest version:" | sed 's/^.*version:[^0-9]*\([0-9\.]\+\).*/\1/p' | head -n1`
+    if [[ "$1" = "XT" ]]; then
+        FALLBACK_VERSION='v0.11A'
+        version=`wget -q --level=1 -O - https://github.com/bitcoinxt/bitcoinxt/releases/latest | sed -n 's/.*releases\/tag\/\([^"]\+\).*$/\1/p'`
+    else
+        FALLBACK_VERSION='0.9.2.1'
+        version=`wget -O - https://bitcoin.org/en/download 2>/dev/null | grep -i "Latest version:" | sed 's/^.*version:[^0-9]*\([0-9\.]\+\).*/\1/p' | head -n1`
+    fi
+
     if [ -z "${version}" ]; then
         echo "WARNING: Unable to determine the latest version from the web. Falling back to version: ${FALLBACK_VERSION}" 1>&2
         version="${FALLBACK_VERSION}"
     fi
+
     echo "${version}"
 }
 
@@ -52,34 +59,53 @@ function create_daemon_user() {
 
 # Download bitcoin-qt
 function download_bitcoind() {
-    if [ -z "${VERSION}" ]; then
-        echo "ERROR: Bitcoin-QT version not set." 1>&2
-        exit 1
-    fi
     if [ -z "${BIT}" ]; then
         echo "ERROR: CPU bit not set." 1>&2
         exit 1
     fi
 
-    file="bitcoin-${VERSION}-linux${BIT}"
-    compare_version "${VERSION}" "0.10.0"
-    if [ "$?" -gt 1 ]; then
-        # Backwards compatibility for version < 0.10.0
-        file="bitcoin-${VERSION}-linux"
-    fi
+    if [[ "$1" = 'XT' ]]; then
+        # NOTE: BTC-XT binary name conventions are inconsistent. This will very likely break in the future.
+        filename_version="${VERSION}"
+        if [[ "${VERSION}" = 'v0.11A' ]]; then
+            filename_version='0.11.0' # Hack. Bleh.
+        fi
+        file="bitcoin-${filename_version}-linux${BIT}" # NOTE: Expect their filename to change in the future...
+        wget "https://github.com/bitcoinxt/bitcoinxt/releases/download/${VERSION}/${file}.tar.gz" --progress=bar:force 2>&1 | tail -f -n +8
+    else
+        if [ -z "${VERSION}" ]; then
+            echo "ERROR: Bitcoin-QT version not set." 1>&2
+            exit 1
+        fi
 
-    # wget "https://bitcoin.org/bin/${VERSION}/${file}.tar.gz" >/dev/null 2>/dev/null
-    wget "https://bitcoin.org/bin/bitcoin-core-${VERSION}/${file}.tar.gz" --progress=bar:force 2>&1 | tail -f -n +8
+        file="bitcoin-${VERSION}-linux${BIT}"
+        compare_version "${VERSION}" "0.10.0"
+        if [ "$?" -gt 1 ]; then
+            # Backwards compatibility for version < 0.10.0
+            file="bitcoin-${VERSION}-linux"
+        fi
+
+        # wget "https://bitcoin.org/bin/${VERSION}/${file}.tar.gz" >/dev/null 2>/dev/null
+        wget "https://bitcoin.org/bin/bitcoin-core-${VERSION}/${file}.tar.gz" --progress=bar:force 2>&1 | tail -f -n +8
+    fi
 }
 
 # Install Bitcoin-QT binaries
 # Note: this function consumes the tarball
 function install_binaries() {
-    file="bitcoin-${VERSION}-linux${BIT}"
-    compare_version "${VERSION}" "0.10.0"
+    filename_version="${VERSION}"
+    if [[ "$1" = 'XT' ]]; then
+        # NOTE: BTC-XT binary name conventions are inconsistent. This will very likely break in the future.
+        if [[ "${VERSION}" = 'v0.11A' ]]; then
+            filename_version='0.11.0' # Hack. Bleh.
+        fi
+    fi
+
+    file="bitcoin-${filename_version}-linux${BIT}"
+    compare_version "${filename_version}" "0.10.0"
     if [ "$?" -gt 1 ]; then
         # Backwards compatibility for version < 0.10.0
-        file="bitcoin-${VERSION}-linux"
+        file="bitcoin-${filename_version}-linux"
     fi
 
     if [ ! -f "${file}.tar.gz" ]; then
@@ -88,9 +114,11 @@ function install_binaries() {
     fi
 
     tar -xzf "${file}.tar.gz"
+
+    compare_version "${filename_version}" "0.10.0"
     if [ "$?" -lt 2 ]; then
-        cp "bitcoin-${VERSION}/bin/bitcoind" "/home/${DAEMON_USER}/."
-        cp "bitcoin-${VERSION}/bin/bitcoin-cli" "/usr/bin/."
+        cp "bitcoin-${filename_version}/bin/bitcoind" "/home/${DAEMON_USER}/."
+        cp "bitcoin-${filename_version}/bin/bitcoin-cli" "/usr/bin/."
     else
         # Backwards compatibility for version < 0.10.0
         cp "${file}/bin/${BIT}/bitcoind" "/home/${DAEMON_USER}/."
@@ -103,9 +131,9 @@ function install_binaries() {
     chmod 755 "/usr/bin/bitcoin-cli"
 
     # Clean Up
-    compare_version "${VERSION}" "0.10.0"
+    compare_version "${filename_version}" "0.10.0"
     if [ "$?" -lt 2 ]; then
-        rm -r "bitcoin-${VERSION}"
+        rm -r "bitcoin-${filename_version}"
     else
         # Backwards compatibility for version < 0.10.0
         rm -r "${file}"
@@ -170,4 +198,27 @@ function compare_version() {
     done
 
     return 0
+}
+
+function prompt_for_variant() {
+    if [[ "${CONFIG_VARIANT}" = 'CORE' ]]; then
+        USE_XT=0
+        VARIANT="${CONFIG_VARIANT}"
+    elif [[ "${CONFIG_VARIANT}" = 'XT' ]]; then
+        USE_XT=1
+        VARIANT="${CONFIG_VARIANT}"
+    else
+        USE_XT=0
+        echo 'Would you like to use Bitcoin-XT? Learn more: https://bitcoinxt.software/'
+        echo -n '(y/N) '
+        read buff
+        if [[ "${buff}" = 'y' ]] || [[ "${buff}" = 'Y' ]]; then
+            USE_XT=1
+        fi
+
+        VARIANT='CORE'
+        if [ "${USE_XT}" -eq 1 ]; then
+            VARIANT='XT'
+        fi
+    fi
 }
