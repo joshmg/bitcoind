@@ -6,3 +6,11 @@
 # The daemon user will be locked; you will be unable to log in as this user (except via su).
 
 DAEMON_USER='bitcoin'
+
+# Set the Fork Variant
+# Learn about Bitcoin-XT here: https://bitcoinxt.software
+# Uncomment one of the following lines to not be prompted to use Bitcoin-XT or Bitcoin-Core.
+
+# CONFIG_VARIANT='CORE' # Use Bitcoin-Core by default.
+# CONFIG_VARIANT='XT' # Use Bitcoin-XT by default.
+

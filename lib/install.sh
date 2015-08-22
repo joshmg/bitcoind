@@ -201,16 +201,24 @@ function compare_version() {
 }
 
 function prompt_for_variant() {
-    USE_XT=0
-    echo "Would you like to use Bitcoin-XT? Learn more: https://bitcoinxt.software/"
-    echo -n "(y/N) "
-    read buff
-    if [[ "${buff}" = "y" ]] || [[ "${buff}" = "Y" ]]; then
+    if [[ "${CONFIG_VARIANT}" = 'CORE' ]]; then
+        USE_XT=0
+        VARIANT="${CONFIG_VARIANT}"
+    elif [[ "${CONFIG_VARIANT}" = 'XT' ]]; then
         USE_XT=1
-    fi
+        VARIANT="${CONFIG_VARIANT}"
+    else
+        USE_XT=0
+        echo 'Would you like to use Bitcoin-XT? Learn more: https://bitcoinxt.software/'
+        echo -n '(y/N) '
+        read buff
+        if [[ "${buff}" = 'y' ]] || [[ "${buff}" = 'Y' ]]; then
+            USE_XT=1
+        fi
 
-    VARIANT="CORE"
-    if [ "${USE_XT}" -eq 1 ]; then
-        VARIANT="XT"
+        VARIANT='CORE'
+        if [ "${USE_XT}" -eq 1 ]; then
+            VARIANT='XT'
+        fi
     fi
 }

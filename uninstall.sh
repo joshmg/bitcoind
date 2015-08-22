@@ -28,3 +28,6 @@ rm /etc/init.d/bitcoind
 echo "Uninstalling bitcoin-cli"
 rm /usr/bin/bitcoin-cli
 
+echo "Removing version-file"
+rm .version
+
