@@ -69,7 +69,7 @@ function download_bitcoind() {
     fi
 
     # wget "https://bitcoin.org/bin/${VERSION}/${file}.tar.gz" >/dev/null 2>/dev/null
-    wget "https://bitcoin.org/bin/${VERSION}/${file}.tar.gz" --progress=bar:force 2>&1 | tail -f -n +8
+    wget "https://bitcoin.org/bin/bitcoin-core-${VERSION}/${file}.tar.gz" --progress=bar:force 2>&1 | tail -f -n +8
 }
 
 # Install Bitcoin-QT binaries
