@@ -10,10 +10,13 @@ if [ ! -f "lib/install.sh" ]; then
 fi
 . lib/install.sh
 
-latest_version=`get_latest_version`
+prompt_for_variant
+
+latest_version=`get_latest_version "${VARIANT}"`
 current_version=''
 if [ -f '.version' ]; then
     current_version=`cat .version | head -n1`
+    current_variant=`cat .version | tail -n1`
 fi
 
 if [ -z "${latest_version}" ]; then
@@ -22,11 +25,11 @@ if [ -z "${latest_version}" ]; then
 fi
 
 if [ "${current_version}" != "${latest_version}" ]; then
-    echo "Current: ${current_version}"
-    echo "Latest:  ${latest_version}"
+    echo "Current: ${current_version} ${current_variant}"
+    echo "Latest:  ${latest_version} ${VARIANT}"
     VERSION="${latest_version}"
 
-    echo "Upgrading to: ${latest_version}"
+    echo "Upgrading to: ${latest_version} ${VARIANT}"
 
     /etc/init.d/bitcoind status 1>/dev/null 2>/dev/null
     if [ "$?" -eq 0 ]; then
@@ -35,10 +38,10 @@ if [ "${current_version}" != "${latest_version}" ]; then
     fi
 
     echo "Downloading Bitcoin-QT ${VERSION}"
-    download_bitcoind
+    download_bitcoind "${VARIANT}"
 
     echo "Installing Bitcoin-QT binary files..."
-    install_binaries
+    install_binaries "${VARIANT}"
 
     # Start BitcoinQT Daemon
     echo "Starting Bitcoin-QT Daemon..."
@@ -47,8 +50,13 @@ if [ "${current_version}" != "${latest_version}" ]; then
     /etc/init.d/bitcoind status
 
     echo "${VERSION}" > .version
+    echo "${VARIANT}" >> .version
     exit 0
 else
-    echo "Up to date. (v${latest_version})"
+    if [[ "${USE_XT}" -eq 1 ]]; then
+        echo "Up to date. (${latest_version})"
+    else
+        echo "Up to date. (v${latest_version})"
+    fi
     exit 0
 fi
