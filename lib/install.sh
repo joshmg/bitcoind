@@ -25,7 +25,10 @@ function random_hash() {
 
 # Determine the latest version via the web.
 function get_latest_version() {
-    if [[ "$1" = "XT" ]]; then
+    if [[ "$1" = "CLASSIC" ]]; then
+        FALLBACK_VERSION='v0.11.2'
+        version=`wget -q --level=1 -O - https://github.com/bitcoinclassic/bitcoinclassic/releases/latest | sed -n 's/.*releases\/tag\/\([^"]\+\).*$/\1/p'`
+    elif [[ "$1" = "XT" ]]; then
         FALLBACK_VERSION='v0.11A'
         version=`wget -q --level=1 -O - https://github.com/bitcoinxt/bitcoinxt/releases/latest | sed -n 's/.*releases\/tag\/\([^"]\+\).*$/\1/p'`
     else
@@ -64,7 +67,14 @@ function download_bitcoind() {
         exit 1
     fi
 
-    if [[ "$1" = 'XT' ]]; then
+    if [[ "$1" = 'CLASSIC' ]]; then
+        filename_version="${VERSION}"
+        if [[ "${VERSION}" = 'v0.11.2.cl1' ]]; then
+            filename_version='0.11.2' # "Hack"
+        fi
+        file="bitcoin-${filename_version}-linux${BIT}" 
+        wget "https://github.com/bitcoinclassic/bitcoinclassic/releases/download/${VERSION}/${file}.tar.gz" --progress=bar:force 2>&1 | tail -f -n +8
+    elif [[ "$1" = 'XT' ]]; then
         # NOTE: BTC-XT binary name conventions are inconsistent. This will very likely break in the future.
         filename_version="${VERSION}"
         if [[ "${VERSION}" = 'v0.11A' ]]; then
@@ -94,6 +104,11 @@ function download_bitcoind() {
 # Note: this function consumes the tarball
 function install_binaries() {
     filename_version="${VERSION}"
+    if [[ "$1" = 'CLASSIC' ]]; then
+        if [[ "${VERSION}" = 'v0.11.2.cl1' ]]; then
+            filename_version='0.11.2' # "Hack"
+        fi
+    fi
     if [[ "$1" = 'XT' ]]; then
         # NOTE: BTC-XT binary name conventions are inconsistent. This will very likely break in the future.
         if [[ "${VERSION}" = 'v0.11A' ]]; then
@@ -203,8 +218,14 @@ function compare_version() {
 function prompt_for_variant() {
     if [[ "${CONFIG_VARIANT}" = 'CORE' ]]; then
         USE_XT=0
+	USE_CLASSIC=0
+        VARIANT="${CONFIG_VARIANT}"
+    elif [[ "${CONFIG_VARIANT}" = 'CLASSIC' ]]; then
+	USE_XT=0
+        USE_CLASSIC=1
         VARIANT="${CONFIG_VARIANT}"
     elif [[ "${CONFIG_VARIANT}" = 'XT' ]]; then
+	USE_CLASSIC=0
         USE_XT=1
         VARIANT="${CONFIG_VARIANT}"
     else
@@ -216,9 +237,21 @@ function prompt_for_variant() {
             USE_XT=1
         fi
 
+        USE_CLASSIC=0
+	if [ "${USE_XT}" -eq 0 ]; then
+            echo 'Would you like to use Bitcoin Classic? Learn more: https://bitcoinclassic.com/'
+            echo -n '(y/N) '
+            read buff
+            if [[ "${buff}" = 'y' ]] || [[ "${buff}" = 'Y' ]]; then
+                USE_CLASSIC=1
+            fi
+	fi
+
         VARIANT='CORE'
         if [ "${USE_XT}" -eq 1 ]; then
             VARIANT='XT'
-        fi
+	elif [ "${USE_CLASSIC}" -eq 1 ]; then
+	    VARIANT='CLASSIC'
+	fi
     fi
 }

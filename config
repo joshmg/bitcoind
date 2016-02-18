@@ -12,5 +12,6 @@ DAEMON_USER='bitcoin'
 # Uncomment one of the following lines to not be prompted to use Bitcoin-XT or Bitcoin-Core.
 
 # CONFIG_VARIANT='CORE' # Use Bitcoin-Core by default.
+# CONFIG_VARIANT='CLASSIC' # Use Bitcoin-Classic by default.
 # CONFIG_VARIANT='XT' # Use Bitcoin-XT by default.
 
