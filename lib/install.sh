@@ -27,10 +27,10 @@ function random_hash() {
 function get_latest_version() {
     if [[ "$1" = "CLASSIC" ]]; then
         FALLBACK_VERSION='v0.11.2'
-        version=`wget -q --level=1 -O - https://github.com/bitcoinclassic/bitcoinclassic/releases/latest | sed -n 's/.*releases\/tag\/\([^"]\+\).*$/\1/p'`
+        version=`wget -q --level=1 -O - https://github.com/bitcoinclassic/bitcoinclassic/releases/latest | sed -n 's/.*releases\/tag\/\([^"]\+\).*$/\1/p' | head -n1`
     elif [[ "$1" = "XT" ]]; then
-        FALLBACK_VERSION='v0.11A'
-        version=`wget -q --level=1 -O - https://github.com/bitcoinxt/bitcoinxt/releases/latest | sed -n 's/.*releases\/tag\/\([^"]\+\).*$/\1/p'`
+        FALLBACK_VERSION='v0.11H'
+        version=`wget -q --level=1 -O - https://github.com/bitcoinxt/bitcoinxt/releases/latest | sed -n 's/.*releases\/tag\/\([^"]\+\).*$/\1/p' | head -n1`
     else
         FALLBACK_VERSION='0.9.2.1'
         version=`wget -O - https://bitcoin.org/en/download 2>/dev/null | grep -i "Latest version:" | sed 's/^.*version:[^0-9]*\([0-9\.]\+\).*/\1/p' | head -n1`
@@ -75,12 +75,11 @@ function download_bitcoind() {
         file="bitcoin-${filename_version}-linux${BIT}" 
         wget "https://github.com/bitcoinclassic/bitcoinclassic/releases/download/${VERSION}/${file}.tar.gz" --progress=bar:force 2>&1 | tail -f -n +8
     elif [[ "$1" = 'XT' ]]; then
-        # NOTE: BTC-XT binary name conventions are inconsistent. This will very likely break in the future.
-        filename_version="${VERSION}"
-        if [[ "${VERSION}" = 'v0.11A' ]]; then
-            filename_version='0.11.0' # Hack. Bleh.
-        fi
-        file="bitcoin-${filename_version}-linux${BIT}" # NOTE: Expect their filename to change in the future...
+        # NOTE: BTC-XT binary name conventions are inconsistent and can't be dynamically parsed.
+        #       The version must be updated manually:
+        filename_version='0.11.0'
+        filename_release='H'
+        file="bitcoin-xt-${filename_version}-${filename_release}-linux${BIT}" # NOTE: Expect their filename to change in the future...
         wget "https://github.com/bitcoinxt/bitcoinxt/releases/download/${VERSION}/${file}.tar.gz" --progress=bar:force 2>&1 | tail -f -n +8
     else
         if [ -z "${VERSION}" ]; then
@@ -104,23 +103,23 @@ function download_bitcoind() {
 # Note: this function consumes the tarball
 function install_binaries() {
     filename_version="${VERSION}"
+    file="bitcoin-${filename_version}-linux${BIT}"
     if [[ "$1" = 'CLASSIC' ]]; then
         if [[ "${VERSION}" = 'v0.11.2.cl1' ]]; then
             filename_version='0.11.2' # "Hack"
+            file="bitcoin-${filename_version}-linux${BIT}"
         fi
     fi
     if [[ "$1" = 'XT' ]]; then
         # NOTE: BTC-XT binary name conventions are inconsistent. This will very likely break in the future.
-        if [[ "${VERSION}" = 'v0.11A' ]]; then
-            filename_version='0.11.0' # Hack. Bleh.
+        filename_version='xt-0.11.0-H' # Hack.
+        file="bitcoin-${filename_version}-linux${BIT}"
+    else
+        compare_version "${filename_version}" "0.10.0"
+        if [ "$?" -gt 1 ]; then
+            # Backwards compatibility for version < 0.10.0
+            file="bitcoin-${filename_version}-linux"
         fi
-    fi
-
-    file="bitcoin-${filename_version}-linux${BIT}"
-    compare_version "${filename_version}" "0.10.0"
-    if [ "$?" -gt 1 ]; then
-        # Backwards compatibility for version < 0.10.0
-        file="bitcoin-${filename_version}-linux"
     fi
 
     if [ ! -f "${file}.tar.gz" ]; then
@@ -130,8 +129,17 @@ function install_binaries() {
 
     tar -xzf "${file}.tar.gz"
 
-    compare_version "${filename_version}" "0.10.0"
-    if [ "$?" -lt 2 ]; then
+    use_legacy=1
+    if [[ "$1" = 'XT' ]]; then
+        use_legacy=0
+    else
+        compare_version "${filename_version}" "0.10.0"
+        if [ "$?" -lt 2 ]; then
+            use_legacy=0
+        fi
+    fi
+
+    if [ "${use_legacy}" -eq 0 ]; then
         cp "bitcoin-${filename_version}/bin/bitcoind" "/home/${DAEMON_USER}/."
         cp "bitcoin-${filename_version}/bin/bitcoin-cli" "/usr/bin/."
     else
@@ -146,8 +154,7 @@ function install_binaries() {
     chmod 755 "/usr/bin/bitcoin-cli"
 
     # Clean Up
-    compare_version "${filename_version}" "0.10.0"
-    if [ "$?" -lt 2 ]; then
+    if [ "${use_legacy}" -eq 0 ]; then
         rm -r "bitcoin-${filename_version}"
     else
         # Backwards compatibility for version < 0.10.0
@@ -193,6 +200,10 @@ function compare_version() {
         return 0
     fi
 
+    if [ "${USE_XT}" -eq 0 ]; then
+        return 1
+    fi
+
     local IFS=.
     local i ver1=($1) ver2=($2)
 
@@ -218,26 +229,25 @@ function compare_version() {
 function prompt_for_variant() {
     if [[ "${CONFIG_VARIANT}" = 'CORE' ]]; then
         USE_XT=0
-	USE_CLASSIC=0
+        USE_CLASSIC=0
         VARIANT="${CONFIG_VARIANT}"
     elif [[ "${CONFIG_VARIANT}" = 'CLASSIC' ]]; then
-	USE_XT=0
+        USE_XT=0
         USE_CLASSIC=1
         VARIANT="${CONFIG_VARIANT}"
     elif [[ "${CONFIG_VARIANT}" = 'XT' ]]; then
-	USE_CLASSIC=0
         USE_XT=1
+        USE_CLASSIC=0
         VARIANT="${CONFIG_VARIANT}"
     else
-        USE_XT=0
-        echo 'Would you like to use Bitcoin-XT? Learn more: https://bitcoinxt.software/'
-        echo -n '(y/N) '
-        read buff
-        if [[ "${buff}" = 'y' ]] || [[ "${buff}" = 'Y' ]]; then
-            USE_XT=1
-        fi
-
+        USE_XT=1
         USE_CLASSIC=0
+        echo 'Would you like to use Bitcoin-XT? Learn more: https://bitcoinxt.software/'
+        echo -n '(Y/n) '
+        read buff
+        if [[ "${buff}" = 'n' ]] || [[ "${buff}" = 'N' ]]; then
+            USE_XT=0
+        fi
 	if [ "${USE_XT}" -eq 0 ]; then
             echo 'Would you like to use Bitcoin Classic? Learn more: https://bitcoinclassic.com/'
             echo -n '(y/N) '
