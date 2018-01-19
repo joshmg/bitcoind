@@ -1,5 +1,7 @@
 #!/bin/bash
 
+USE_BCH=1
+
 if [ ! -f ~/.bitcoin/bitcoin.conf ]; then
     echo "ERROR: ~/.bitcoin/bitcoin.conf not found." 1>&2
 
@@ -21,7 +23,11 @@ if [ "$*" == "--poll" ]; then
             fi
 
             if [ $i = 0 ]; then
-                web_count=`wget -O - http://blockchain.info/q/getblockcount 2>/dev/null`
+                if [ ${USE_BCH} ]; then 
+                    web_count=`wget -O - https://bitcoincash.blockexplorer.com/api/status?q=getBlockCount 2>/dev/null | sed -n 's/.*"blocks":\([0-9]\+\),.*/\1/p'`
+                else
+                    web_count=`wget -O - http://blockchain.info/q/getblockcount 2>/dev/null`
+                fi
             fi
 
             echo -ne "\r\033[KDownloaded:\t${local_count} of ${web_count}\t\t( $((${local_count} * 100 / ${web_count}))% )"
@@ -42,7 +48,12 @@ else
         echo "ERROR: Can't connect to bitcoind. Is it running?" 1>&2
         exit 1
     fi
-    web_count=`wget -O - http://blockchain.info/q/getblockcount 2>/dev/null`
+
+    if [ ${USE_BCH} ]; then 
+        web_count=`wget -O - https://bitcoincash.blockexplorer.com/api/status?q=getBlockCount 2>/dev/null | sed -n 's/.*"blocks":\([0-9]\+\),.*/\1/p'`
+    else
+        web_count=`wget -O - http://blockchain.info/q/getblockcount 2>/dev/null`
+    fi
 
     echo -e "Downloaded:\t${local_count} of ${web_count}\t\t( $((${local_count} * 100 / ${web_count}))% )"
 fi
