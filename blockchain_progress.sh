@@ -1,6 +1,10 @@
 #!/bin/bash
 
+current_variant=`cat .version | tail -n1`
 USE_BCH=1
+if [ "${current_variant}" != "XT" ]; then
+    USE_BCH=0
+fi
 
 if [ ! -f ~/.bitcoin/bitcoin.conf ]; then
     echo "ERROR: ~/.bitcoin/bitcoin.conf not found." 1>&2
@@ -50,7 +54,7 @@ else
     fi
 
     if [ ${USE_BCH} ]; then 
-        web_count=`wget -O - https://bitcoincash.blockexplorer.com/api/status?q=getBlockCount 2>/dev/null | sed -n 's/.*"blocks":\([0-9]\+\),.*/\1/p'`
+        web_count=`wget -O - https://bitcoincash.blockexplorer.com/api/status?q=getBlockCount 2>/dev/null | sed -n 's/.*"blockcount":\([0-9]\+\)[^0-9].*/\1/p'`
     else
         web_count=`wget -O - http://blockchain.info/q/getblockcount 2>/dev/null`
     fi
