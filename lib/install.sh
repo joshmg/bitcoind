@@ -23,13 +23,20 @@ function random_hash() {
     hash "${tmp}"
 }
 
+function compute_xt_filename() {
+    filename_version='0.11.0'
+    filename_release="${VERSION: -1}"
+    filename="bitcoin-xt-${filename_version}-${filename_release}" # NOTE: Expect their filename to change in the future...
+    echo "${filename}"
+}
+
 # Determine the latest version via the web.
 function get_latest_version() {
     if [[ "$1" = "CLASSIC" ]]; then
         FALLBACK_VERSION='v0.11.2'
         version=`wget -q --level=1 -O - https://github.com/bitcoinclassic/bitcoinclassic/releases/latest | sed -n 's/.*releases\/tag\/\([^"]\+\).*$/\1/p' | head -n1`
     elif [[ "$1" = "XT" ]]; then
-        FALLBACK_VERSION='v0.11H'
+        FALLBACK_VERSION='v0.11I'
         version=`wget -q --level=1 -O - https://github.com/bitcoinxt/bitcoinxt/releases/latest | sed -n 's/.*releases\/tag\/\([^"]\+\).*$/\1/p' | head -n1`
     else
         FALLBACK_VERSION='0.9.2.1'
@@ -77,9 +84,9 @@ function download_bitcoind() {
     elif [[ "$1" = 'XT' ]]; then
         # NOTE: BTC-XT binary name conventions are inconsistent and can't be dynamically parsed.
         #       The version must be updated manually:
-        filename_version='0.11.0'
-        filename_release='H'
-        file="bitcoin-xt-${filename_version}-${filename_release}-linux${BIT}" # NOTE: Expect their filename to change in the future...
+        filename="`compute_xt_filename`-linux${BIT}"
+        file="${filename}" # NOTE: Expect their filename to change in the future...
+        echo "Downloading: https://github.com/bitcoinxt/bitcoinxt/releases/download/${VERSION}/${file}.tar.gz"
         wget "https://github.com/bitcoinxt/bitcoinxt/releases/download/${VERSION}/${file}.tar.gz" --progress=bar:force 2>&1 | tail -f -n +8
     else
         if [ -z "${VERSION}" ]; then
@@ -99,7 +106,7 @@ function download_bitcoind() {
     fi
 }
 
-# Install Bitcoin-QT binaries
+# Install Bitcoin binaries
 # Note: this function consumes the tarball
 function install_binaries() {
     filename_version="${VERSION}"
@@ -110,10 +117,13 @@ function install_binaries() {
             file="bitcoin-${filename_version}-linux${BIT}"
         fi
     fi
+
+    unzipped_filename="bitcoin-${filename_version}"
     if [[ "$1" = 'XT' ]]; then
         # NOTE: BTC-XT binary name conventions are inconsistent. This will very likely break in the future.
-        filename_version='xt-0.11.0-H' # Hack.
-        file="bitcoin-${filename_version}-linux${BIT}"
+        unzipped_filename="`compute_xt_filename`"
+        filename="${unzipped_filename}-linux${BIT}"
+        file="${filename}"
     else
         compare_version "${filename_version}" "0.10.0"
         if [ "$?" -gt 1 ]; then
@@ -140,8 +150,8 @@ function install_binaries() {
     fi
 
     if [ "${use_legacy}" -eq 0 ]; then
-        cp "bitcoin-${filename_version}/bin/bitcoind" "/home/${DAEMON_USER}/."
-        cp "bitcoin-${filename_version}/bin/bitcoin-cli" "/usr/bin/."
+        cp "${unzipped_filename}/bin/bitcoind" "/home/${DAEMON_USER}/."
+        cp "${unzipped_filename}/bin/bitcoin-cli" "/usr/bin/."
     else
         # Backwards compatibility for version < 0.10.0
         cp "${file}/bin/${BIT}/bitcoind" "/home/${DAEMON_USER}/."
@@ -155,7 +165,7 @@ function install_binaries() {
 
     # Clean Up
     if [ "${use_legacy}" -eq 0 ]; then
-        rm -r "bitcoin-${filename_version}"
+        rm -r "${unzipped_filename}"
     else
         # Backwards compatibility for version < 0.10.0
         rm -r "${file}"

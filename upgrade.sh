@@ -33,18 +33,18 @@ if [ "${current_version}" != "${latest_version}" ]; then
 
     /etc/init.d/bitcoind status 1>/dev/null 2>/dev/null
     if [ "$?" -eq 0 ]; then
-        echo "Shutting down the Bitcoin-QT Daemon"
+        echo "Shutting down the Bitcoin Daemon"
         /etc/init.d/bitcoind stop
     fi
 
-    echo "Downloading Bitcoin-QT ${VERSION}"
+    echo "Downloading ${VERSION}"
     download_bitcoind "${VARIANT}"
 
-    echo "Installing Bitcoin-QT binary files..."
+    echo "Installing binary files..."
     install_binaries "${VARIANT}"
 
     # Start BitcoinQT Daemon
-    echo "Starting Bitcoin-QT Daemon..."
+    echo "Starting Bitcoin Daemon..."
     /etc/init.d/bitcoind start
     sleep 3
     /etc/init.d/bitcoind status
